@@ -1,7 +1,7 @@
 # Modelo Predictivo de Supervivencia en el Titanic
 
 ## 1. Integrantes del Equipo
-* **[Nombre Integrante 1]**
+* **Santiago Acevedo González**
 * **[Nombre Integrante 2]**
 * **Ivan Rene Acosta Lallemand**
 
