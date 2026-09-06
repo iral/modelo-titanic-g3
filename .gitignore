@@ -1,0 +1,21 @@
+# Entorno virtual (uv)
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# Entradas/salidas de datos derivadas
+data/processed/
+data/interim/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
