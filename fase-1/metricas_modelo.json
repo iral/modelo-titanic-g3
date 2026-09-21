@@ -1,0 +1,15 @@
+{
+  "modelo": "RandomForestClassifier",
+  "estrategia": "Pipeline + GridSearchCV (StratifiedKFold 5)",
+  "mejores_hiperparametros": {
+    "clf__max_depth": 5,
+    "clf__min_samples_leaf": 2,
+    "clf__min_samples_split": 2,
+    "clf__n_estimators": 100
+  },
+  "accuracy_cv": 0.8202,
+  "accuracy": 0.8156,
+  "precision": 0.875,
+  "recall": 0.6087,
+  "f1_score": 0.7179
+}
