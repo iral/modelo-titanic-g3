@@ -2,8 +2,8 @@
 
 ## 1. Integrantes del Equipo
 * **Santiago Acevedo González**
-* **[Nombre Integrante 2]**
 * **Ivan Rene Acosta Lallemand**
+* **Daniela Andrea Gallego Díaz**
 
 ## 2. Descripción del Problema
 El hundimiento del RMS Titanic es uno de los naufragios más conocidos de la historia. El objetivo principal de este proyecto es construir un modelo predictivo supervisado capaz de determinar la probabilidad de supervivencia de los pasajeros a partir de sus características personales y de viaje (como edad, género, clase socioeconómica y tarifa pagada).
