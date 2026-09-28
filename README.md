@@ -24,7 +24,7 @@ modelo-titanic-g3/
 │   └── notebook.ipynb    # notebook ejecutable con la exploración
 |   |                       preparación, entrenamiento y evaluación del modelo.
 |   │
-|   ├── modelo_titanic.joblib # Pipeline completo del modelo seleccionado, incluyendo 
+|   ├── modelo.joblib # Pipeline completo del modelo seleccionado, incluyendo 
 |   |                           el preprocesamiento y Random Forest.
 |   │
 |   ├── metricas_base.json # Métricas obtenidas por el modelo baseline.
@@ -93,7 +93,7 @@ La búsqueda se realiza exclusivamente sobre el conjunto de entrenamiento (`X_tr
 
 El modelo final se almacena como un archivo `joblib`:
 
-`fase-1/modelo_titanic.joblib`
+`fase-1/modelo.joblib`
 
 El archivo contiene el `Pipeline` completo correspondiente al mejor estimador encontrado mediante `GridSearchCV`. Esto incluye tanto el preprocesamiento de los datos como el `RandomForestClassifier` entrenado.
 
