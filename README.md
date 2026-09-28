@@ -19,20 +19,17 @@ Desarrollar un pipeline de Machine Learning reproducible y documentado que prepr
 ```
 modelo-titanic-g3/
 ├── data/
-│   └── raw/              # Datos originales sin modificar (train.csv, test.csv)
+│   └── raw/                    # Datos originales sin modificar (train.csv, test.csv)
+├── docs/
+│   └── TECNICO.md              # Guía técnica: entorno, ejecución y resolución de problemas
 ├── fase-1/
-│   └── notebook.ipynb    # notebook ejecutable con la exploración
-|   |                       preparación, entrenamiento y evaluación del modelo.
-|   │
-|   ├── modelo.joblib # Pipeline completo del modelo seleccionado, incluyendo 
-|   |                           el preprocesamiento y Random Forest.
-|   │
-|   ├── metricas_base.json # Métricas obtenidas por el modelo baseline.
-|   │
-|   └── metricas_modelo.json # Métricas obtenidas por el modelo baseline.
-|
-├── pyproject.toml        # Definición del entorno y dependencias
-├── uv.lock               # Bloqueo de versiones de dependencias
+│   ├── notebook.ipynb          # Notebook ejecutado: EDA, preprocesamiento,
+│   │                           # modelo base, modelo predictivo, evaluación y verificación
+│   ├── modelo.joblib           # Pipeline completo entrenado (preprocesamiento + Random Forest)
+│   ├── metricas_base.json      # Métricas del modelo base sobre el conjunto de prueba
+│   └── metricas_modelo.json    # Métricas del modelo predictivo sobre el conjunto de prueba
+├── pyproject.toml              # Definición del entorno y dependencias
+├── uv.lock                     # Bloqueo de versiones de dependencias
 └── README.md
 ```
 
@@ -81,15 +78,81 @@ Las métricas del modelo base se almacenan en:
 
 `fase-1/metricas_base.json`
 
-## 9. Modelo predictivo
+## 9. Algoritmo definitivo
 
-El modelo principal utilizado es un `RandomForestClassifier` integrado en un `Pipeline` junto con el preprocesamiento de los datos.
+El algoritmo definitivo del proyecto es un **`RandomForestClassifier` dentro de un `Pipeline` de
+Scikit-Learn**, cuyos hiperparámetros se seleccionan mediante `GridSearchCV` con validación cruzada
+estratificada de 5 pliegues (24 combinaciones evaluadas).
 
-Los hiperparámetros se seleccionan mediante `GridSearchCV` utilizando validación cruzada estratificada de 5 pliegues.
+La búsqueda se realiza exclusivamente sobre el conjunto de entrenamiento (`X_train`, `y_train`),
+mientras que el conjunto de prueba (`X_test`, `y_test`) se reserva para la evaluación final.
 
-La búsqueda se realiza exclusivamente sobre el conjunto de entrenamiento (`X_train`, `y_train`), mientras que el conjunto de prueba (`X_test`, `y_test`) se reserva para la evaluación final.
+### 9.1 Flujo del pipeline
 
-## 10. Modelo almacenado
+```
+X (datos crudos)
+   └─ preprocessor (ColumnTransformer)
+        ├─ num: Pclass, Age, SibSp, Parch, Fare → SimpleImputer(median)
+        └─ cat: Sex, Embarked                    → SimpleImputer(most_frequent) + OneHotEncoder
+   └─ clf: RandomForestClassifier
+```
+
+No se requiere escalado de variables numéricas: un bosque aleatorio no depende de la escala de las
+características.
+
+### 9.2 Hiperparámetros seleccionados
+
+| Hiperparámetro | Valor |
+| -------------- | -----: |
+| `n_estimators` | 100 |
+| `max_depth` | 5 |
+| `min_samples_split` | 2 |
+| `min_samples_leaf` | 2 |
+| `random_state` | 42 |
+
+### 9.3 Variables utilizadas
+
+* **Numéricas:** `Pclass`, `Age`, `SibSp`, `Parch`, `Fare`.
+* **Categóricas:** `Sex`, `Embarked`.
+* **Descartadas:** `PassengerId`, `Name`, `Ticket`, `Cabin` (77% de valores faltantes) y la propia
+  variable objetivo `Survived`.
+
+## 10. Resultados finales
+
+Las métricas se calculan sobre el **conjunto de prueba retenido** (`X_test`, 179 pasajeros que nunca
+participaron en entrenamiento ni en la selección de hiperparámetros). La clase positiva es
+`1 = sobrevivió`.
+
+| Modelo | Accuracy | Precision | Recall | F1-Score | ROC-AUC |
+| ------ | -------: | --------: | -----: | -------: | ------: |
+| `DummyClassifier` (base, `most_frequent`) | 0.6145 | 0.0000 | 0.0000 | 0.0000 | 0.5000 |
+| **`RandomForestClassifier` (definitivo)** | **0.8156** | **0.8750** | **0.6087** | **0.7179** | **0.8356** |
+| **Diferencia (Δ)** | **+0.2011** | +0.8750 | +0.6087 | +0.7179 | +0.3356 |
+
+* **Accuracy media en validación cruzada (5 pliegues estratificados):** 0.8202.
+* Las métricas se almacenan en `fase-1/metricas_base.json` y `fase-1/metricas_modelo.json`.
+
+### 10.1 Matriz de confusión
+
+| | Predice "no sobrevivió" | Predice "sobrevivió" |
+| --- | ---: | ---: |
+| **Real: no sobrevivió** | 104 (correcto) | 6 (falso positivo) |
+| **Real: sobrevivió** | 27 (falso negativo) | 42 (correcto) |
+
+El modelo identifica a **42 de los 69 supervivientes reales** (recall 0.61) cometiendo solo 6 falsos
+positivos (precision 0.88), frente a un modelo base que clasifica bien a los 110 no sobrevivientes
+pero **no detecta a ningún superviviente**.
+
+### 10.2 Métrica principal: F1-Score
+
+La variable objetivo está desbalanceada (38.4% sobrevivió frente a 61.6% no sobrevivió), por lo que la
+accuracy premia demasiado acertar la clase mayoritaria: el modelo base ya alcanza 0.6145 sin aprender
+nada. Por eso la métrica principal del proyecto es el **F1-Score de la clase superviviente**, que
+combina *precision* y *recall* y obliga a balancear los dos tipos de error (no perder supervivientes
+que sí sobrevivieron ni declarar supervivencia donde no la hubo). El **ROC-AUC** se reporta como
+métrica complementaria, por ser independiente del umbral de decisión.
+
+## 11. Modelo almacenado
 
 El modelo final se almacena como un archivo `joblib`:
 
@@ -100,13 +163,13 @@ El archivo contiene el `Pipeline` completo correspondiente al mejor estimador en
 Guardar el pipeline completo permite reutilizar posteriormente el modelo sobre nuevos datos sin tener que reconstruir manualmente las transformaciones realizadas durante el entrenamiento.
 
 
-## 11. Puesta en Marcha
+## 12. Puesta en marcha
 
-### 11.1 Requisitos
+### 12.1 Requisitos
 * Python 3.12 o superior.
 * [uv](https://docs.astral.sh/uv/) para la gestión del entorno virtual y las dependencias.
 
-### 11.2 Instalación
+### 12.2 Instalación
 ```bash
 uv sync
 ```
@@ -116,7 +179,7 @@ Este comando crea el entorno virtual (`.venv/`), instala las dependencias del pr
 > **Nota:** si trabajas en otro equipo y acabas de clonar el repositorio, este es el único
 > paso necesario; no hace falta crear el entorno a mano.
 
-### 11.3 Ejecutar el notebook
+### 12.3 Ejecutar el notebook
 Desde la raíz del proyecto:
 
 ```bash
@@ -124,13 +187,25 @@ uv run jupyter lab
 ```
 
 Se abrirá el navegador; dentro de la interfaz navega hasta `fase-1/notebook.ipynb` y ejecuta
-las celdas en orden (menú **Run ▸ Run All Cells**).
+todo desde un kernel limpio con el menú **Kernel ▸ Restart Kernel and Run All Cells**. Así se
+regeneran en orden todas las tablas, gráficas y salidas.
 
 Alternativamente, se puede ejecutar el notebook desde la terminal y regenerar sus salidas:
 ```bash
 uv run jupyter nbconvert --to notebook --execute fase-1/notebook.ipynb --inplace
 ```
 
-### 11.4 Detalle técnico
+La ejecución completa regenera además los artefactos de la fase: `fase-1/modelo.joblib`,
+`fase-1/metricas_base.json` y `fase-1/metricas_modelo.json`.
+
+**Verificación:** la última celda del notebook debe imprimir
+`Verificación exitosa: el pipeline guardado se cargó y predijo correctamente.`
+
+**Reproducibilidad:** todas las decisiones aleatorias del notebook (división de datos, validación
+cruzada, bosque aleatorio y muestra de verificación) usan la constante `SEED = 42`, fijada en la
+celda de configuración y propagada como `random_state` a cada estimador. Con el dataset original sin
+modificar, dos ejecuciones completas producen las mismas métricas de la tabla de la sección 10.
+
+### 12.4 Detalle técnico
 Para una guía exhaustiva (requisitos, esquema del dataset, contenido celda por celda del
 notebook, resultados del análisis y resolución de problemas), ver **docs/TECNICO.md**.

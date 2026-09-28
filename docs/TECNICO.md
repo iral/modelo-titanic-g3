@@ -31,7 +31,11 @@ modelo-titanic-g3/
 ├── docs/
 │   └── TECNICO.md            # Este documento
 ├── fase-1/
-│   └── notebook.ipynb        # Análisis exploratorio de datos (EDA) ejecutado y documentado
+│   ├── notebook.ipynb        # Notebook ejecutado y documentado (EDA, preprocesamiento,
+│   │                         # modelo base, modelo predictivo, evaluación y verificación)
+│   ├── modelo.joblib         # Pipeline completo entrenado, listo para predecir
+│   ├── metricas_base.json    # Métricas del modelo base en el conjunto de prueba
+│   └── metricas_modelo.json  # Métricas del modelo predictivo en el conjunto de prueba
 ├── pyproject.toml            # Metadatos del proyecto y declaración de dependencias
 ├── README.md                 # Resumen del proyecto y guía rápida de puesta en marcha
 └── uv.lock                   # Versiones exactas de todas las dependencias (bloqueo)
