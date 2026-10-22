@@ -1,16 +1,50 @@
 {
   "modelo": "RandomForestClassifier",
-  "estrategia": "Pipeline + GridSearchCV (StratifiedKFold 5)",
+  "estrategia": "Pipeline + GridSearchCV (StratifiedGroupKFold 5 por Ticket, selección por F1) (umbral 0.5)",
+  "metrica_seleccion": "f1",
   "mejores_hiperparametros": {
-    "clf__max_depth": 5,
-    "clf__min_samples_leaf": 2,
-    "clf__min_samples_split": 2,
-    "clf__n_estimators": 100
+    "clf__max_depth": 10,
+    "clf__min_samples_leaf": 1,
+    "clf__min_samples_split": 5,
+    "clf__n_estimators": 200
   },
-  "accuracy_cv": 0.8202,
-  "accuracy": 0.8156,
-  "precision": 0.875,
-  "recall": 0.6087,
-  "f1_score": 0.7179,
-  "roc_auc": 0.8356
+  "umbral_decision": 0.5,
+  "validacion_cruzada": {
+    "f1": 0.7382,
+    "precision": 0.805,
+    "recall": 0.6855,
+    "accuracy": 0.8093,
+    "roc_auc": 0.8405,
+    "std_f1": 0.0246,
+    "f1_entrenamiento": 0.8978
+  },
+  "validacion_umbral_anidada": {
+    "f1_umbral_0.5": 0.7382,
+    "f1_umbral_ajustado": 0.7067,
+    "adoptado": false
+  },
+  "accuracy": 0.8235,
+  "f1_score": 0.6939,
+  "roc_auc": 0.8527,
+  "precision": 0.8095,
+  "recall": 0.6071,
+  "evaluacion_final_procedimiento_anterior_referencia": {
+    "accuracy": 0.8235,
+    "f1_score": 0.6939,
+    "roc_auc": 0.8527,
+    "precision": 0.8095,
+    "recall": 0.6071
+  },
+  "particion": {
+    "desarrollo_X_dev": 721,
+    "evaluacion_final_X_final": 170,
+    "grupo": "Ticket",
+    "tickets_compartidos_dev_final": 0
+  },
+  "versiones": {
+    "python": "3.12.7",
+    "scikit-learn": "1.5.1",
+    "pandas": "2.2.2",
+    "numpy": "1.26.4"
+  }
 }

@@ -1,7 +1,8 @@
 # Guía Técnica del Proyecto
 
 Documento técnico detallado para la instalación, ejecución y reproducción del análisis
-exploratorio del proyecto **Modelo Predictivo de Supervivencia en el Titanic**.
+exploratorio, el modelado y la evaluación de la Fase 1 del proyecto **Modelo Predictivo de
+Supervivencia en el Titanic**.
 
 ---
 
@@ -12,7 +13,7 @@ Esta guía cubre:
 - Estructura del repositorio.
 - Requisitos de software y configuración del entorno.
 - Instalación paso a paso y gestión de dependencias.
-- Formas de ejecutar el notebook de la Fase 1 (EDA).
+- Formas de ejecutar el notebook de la Fase 1 (EDA, modelado, evaluación y persistencia).
 - Reproducibilidad y restablecimiento del entorno.
 - Solución de problemas frecuentes.
 
@@ -26,16 +27,16 @@ modelo-titanic-g3/
 ├── .venv/                    # Entorno virtual (generado automáticamente, no se versiona)
 ├── data/
 │   └── raw/                  # Datos originales sin ninguna transformación
-│       ├── train.csv         # Conjunto de entrenamiento (891 registros, con Survived)
-│       └── test.csv          # Conjunto de prueba (418 registros, sin Survived)
+│       ├── train.csv         # 891 registros CON Survived: único conjunto etiquetado
+│       └── test.csv          # 418 registros SIN Survived: solo para generar predicciones
 ├── docs/
 │   └── TECNICO.md            # Este documento
 ├── fase-1/
 │   ├── notebook.ipynb        # Notebook ejecutado y documentado (EDA, preprocesamiento,
 │   │                         # modelo base, modelo predictivo, evaluación y verificación)
-│   ├── modelo.joblib         # Pipeline completo entrenado, listo para predecir
-│   ├── metricas_base.json    # Métricas del modelo base en el conjunto de prueba
-│   └── metricas_modelo.json  # Métricas del modelo predictivo en el conjunto de prueba
+│   ├── modelo.joblib         # Modelo completo entrenado (pipeline + umbral), listo para predecir
+│   ├── metricas_base.json    # Métricas del modelo base en la evaluación final
+│   └── metricas_modelo.json  # Métricas del modelo predictivo en la evaluación final
 ├── pyproject.toml            # Metadatos del proyecto y declaración de dependencias
 ├── README.md                 # Resumen del proyecto y guía rápida de puesta en marcha
 └── uv.lock                   # Versiones exactas de todas las dependencias (bloqueo)
@@ -46,6 +47,8 @@ modelo-titanic-g3/
 | Ubicación | Contenido | Regla |
 |-----------|-----------|-------|
 | `data/raw/` | Datos tal como se descargan de la fuente | **Nunca se modifican ni se sobrescriben** |
+| `train.csv` | 891 pasajeros etiquetados | Se divide por `Ticket` en *desarrollo* (712) y *evaluación final* (179) |
+| `test.csv` | 418 pasajeros sin etiqueta | Solo predicciones; **no** se calculan métricas con él ni entra en validación o selección |
 | `data/processed/` (a futuro) | Datos transformados por el pipeline | Generados por scripts; se ignoran en git |
 
 ---
@@ -88,7 +91,7 @@ Este comando hace dos cosas:
 ### 4.3 Verificar la instalación
 
 ```bash
-uv run python -c "import pandas, numpy, matplotlib, seaborn; print('OK')"
+uv run python -c "import pandas, numpy, matplotlib, seaborn, sklearn, joblib; print('OK')"
 ```
 
 Si todo está correcto, la terminal muestra `OK`.
@@ -109,6 +112,8 @@ Compendio de lo que se instala:
 | `numpy` | Operaciones numéricas y arrays |
 | `matplotlib` | Generación de gráficas base |
 | `seaborn` | Gráficas estadísticas de alto nivel (sobre matplotlib) |
+| `scikit-learn` | Pipeline, validación cruzada por grupos, Random Forest y métricas |
+| `joblib` | Guardado y carga del modelo (se instala como dependencia de scikit-learn) |
 | `jupyter` | Ejecución del notebook (Jupyter Lab / Notebook) |
 | `ipykernel` | Kernel de Python que usa Jupyter para ejecutar el código |
 
@@ -144,7 +149,15 @@ Opciones útiles:
 | `--inplace` | Sobrescribe el mismo archivo con los resultados |
 | `--ExecutePreprocessor.timeout=120` | Límite de tiempo por celda (por defecto 30 s) |
 
-### 5.3 Nota sobre el kernel
+### 5.3 Qué genera la ejecución completa
+
+La ejecución regenera `fase-1/modelo.joblib`, `fase-1/metricas_base.json` y
+`fase-1/metricas_modelo.json` (este último registra las versiones de Python y de las librerías).
+La última celda debe imprimir `Verificación exitosa: ...`; antes comprueba, con `assert`, el esquema
+de entrada, la equivalencia de predicciones entre el modelo en memoria y el cargado, y una predicción
+en un proceso Python independiente. Tiempo aproximado: 3–4 minutos.
+
+### 5.4 Nota sobre el kernel
 
 El notebook usa el kernel **Python 3 (ipykernel)**. Al ejecutarlo con `uv run`, Jupyter levanta
 el kernel del entorno virtual del proyecto automáticamente, por lo que no hace falta registrarlo
@@ -209,7 +222,13 @@ uv sync             # instala las nuevas versiones
 - Ejecutar la celda de imports (el primero de todo) antes que las de gráficas, y ejecutar las celdas en orden.
 - Si se usa la terminal, el notebook se abre correctamente si se ejecuta con `uv run jupyter lab`.
 
-### 7.5 Kernel sin el entorno del proyecto
+### 7.5 Error o aviso al cargar `modelo.joblib`
+
+- `joblib` no garantiza compatibilidad entre versiones de scikit-learn. Si aparece un aviso de versión
+  o un error al cargar el modelo, el entorno no coincide con el de `uv.lock`: ejecute `uv sync` y vuelva
+  a ejecutar el notebook para regenerar `modelo.joblib`.
+
+### 7.6 Kernel sin el entorno del proyecto
 
 - Asegurarse de iniciar Jupyter con `uv run jupyter lab`; de lo contrario el kernel puede usar
   un Python distinto al del proyecto y fallar los `import`.
