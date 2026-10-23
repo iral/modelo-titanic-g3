@@ -1,0 +1,33 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Cachés de Python y pruebas
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Control de versiones y metadatos del editor
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Artefactos generados: se montan desde el equipo anfitrión
+models/
+outputs/
+
+# Datos completos: se montan en tiempo de ejecución
+data/datos.csv
+data/train.csv
+data/test.csv
+
+# Secretos y archivos temporales
+.env
+*.log
+*.tmp
+Thumbs.db
+.DS_Store
