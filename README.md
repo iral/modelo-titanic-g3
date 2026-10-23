@@ -8,9 +8,10 @@
 ## 2. Descripción
 
 Proyecto de Machine Learning supervisado que predice la supervivencia de pasajeros del Titanic
-(`Survived`) a partir de sus características personales y de viaje. La documentación completa de la
-**Fase 1** (datos, preprocesamiento, algoritmo, resultados y modelo almacenado) está en
-[`fase-1/README.md`](fase-1/README.md).
+(`Survived`) a partir de sus características personales y de viaje. La **Fase 1** (análisis,
+modelado y evaluación) está documentada en [`fase-1/README.md`](fase-1/README.md); la **Fase 2**
+convierte ese trabajo en una aplicación de línea de comandos con versionado de modelos, pruebas y
+Docker, documentada en [`fase-2/README.md`](fase-2/README.md).
 
 ## 3. Estructura del Proyecto
 ```
@@ -26,6 +27,16 @@ modelo-titanic-g3/
 │   ├── modelo.joblib           # Pipeline completo entrenado (preprocesamiento + Random Forest)
 │   ├── metricas_base.json      # Métricas del modelo base en el conjunto de prueba
 │   └── metricas_modelo.json    # Métricas del modelo predictivo en el conjunto de prueba
+├── fase-2/
+│   ├── README.md               # Guía de la aplicación (comandos, Docker y pruebas)
+│   ├── train.py                # Entrenamiento versionado
+│   ├── predict.py              # Predicción con una versión guardada
+│   ├── src/                    # Lógica reutilizable (datos, pipeline, métricas, artefactos)
+│   ├── tests/                  # Pruebas automatizadas con pytest
+│   ├── models/                 # Versiones v1 y v2 del modelo
+│   ├── data/                   # CSV de ejemplo sin la variable objetivo
+│   ├── Dockerfile              # Imagen para ejecutar entrenamiento y predicción
+│   └── requirements.txt        # Dependencias con versiones explícitas
 ├── pyproject.toml              # Definición del entorno y dependencias
 ├── uv.lock                     # Bloqueo de versiones de dependencias
 └── README.md
@@ -73,10 +84,27 @@ celda de configuración y propagada como `random_state` a cada estimador. Con el
 modificar, dos ejecuciones completas producen las mismas métricas publicadas en
 [`fase-1/README.md`](fase-1/README.md).
 
-## 5. Documentación
+## 5. Fase 2 (aplicación reutilizable)
+
+La Fase 2 vive en `fase-2/` y usa su propio entorno y dependencias (`fase-2/requirements.txt`,
+Python 3.13). Desde `fase-2/`:
+
+```powershell
+python -m pip install -r requirements.txt
+python train.py --data ..\data\raw\train.csv --target Survived --output-dir models --version v1 --seed 42
+python predict.py --model models\v1\modelo.joblib --input data\ejemplo_prediccion.csv --output outputs\predicciones.csv
+python -m pytest
+```
+
+Incluye entrenamiento versionado (`models/v1`, `models/v2`), predicción con validación de esquema,
+7 pruebas automatizadas y ejecución con Docker. La guía completa está en
+[`fase-2/README.md`](fase-2/README.md).
+
+## 6. Documentación
 
 | Documento | Contenido |
 |-----------|-----------|
 | [`fase-1/README.md`](fase-1/README.md) | Problema, datos, preprocesamiento, modelo base, algoritmo definitivo, resultados finales y modelo almacenado. |
+| [`fase-2/README.md`](fase-2/README.md) | Aplicación reutilizable: instalación, comandos de entrenamiento y predicción, versiones, Docker, pruebas y evidencias. |
 | [`docs/TECNICO.md`](docs/TECNICO.md) | Guía exhaustiva: requisitos, esquema del dataset, ejecución, reproducibilidad y resolución de problemas. |
 | `fase-1/notebook.ipynb` | Notebook completo y ejecutado, con la reflexión técnica final. |
