@@ -37,7 +37,7 @@ modelo-titanic-g3/
 │   ├── data/                   # CSV de ejemplo sin la variable objetivo
 │   ├── Dockerfile              # Imagen para ejecutar entrenamiento y predicción
 │   └── requirements.txt        # Dependencias con versiones explícitas
-├── pyproject.toml              # Definición del entorno y dependencias
+├── pyproject.toml              # Dependencias de las dos fases (uv)
 ├── uv.lock                     # Bloqueo de versiones de dependencias
 └── README.md
 ```
@@ -45,7 +45,7 @@ modelo-titanic-g3/
 ## 4. Cómo ejecutar el proyecto (Fase 1)
 
 ### 4.1 Requisitos
-* Python 3.12 o superior.
+* Python 3.13 (probado con 3.13.0).
 * [uv](https://docs.astral.sh/uv/) para la gestión del entorno virtual y las dependencias.
 
 ### 4.2 Instalación
@@ -53,8 +53,8 @@ Desde la raíz del proyecto:
 ```bash
 uv sync
 ```
-Crea el entorno virtual (`.venv/`), instala las dependencias (análisis de datos y visualización) y
-las herramientas para ejecutar el notebook.
+Crea el entorno virtual (`.venv/`) e instala las dependencias de las dos fases, las herramientas para
+ejecutar el notebook y `pytest`.
 
 > **Nota:** si acabas de clonar el repositorio, este es el único paso necesario; no hace falta crear
 > el entorno a mano.
@@ -86,19 +86,25 @@ modificar, dos ejecuciones completas producen las mismas métricas publicadas en
 
 ## 5. Fase 2 (aplicación reutilizable)
 
-La Fase 2 vive en `fase-2/` y usa su propio entorno y dependencias (`fase-2/requirements.txt`,
-Python 3.13). Desde `fase-2/`:
+La Fase 2 vive en `fase-2/` y comparte el entorno gestionado por `uv` (`pyproject.toml` en la raíz,
+Python 3.13); `fase-2/requirements.txt` mantiene las mismas versiones para Docker y `pip`. Desde la
+raíz:
 
 ```powershell
-python -m pip install -r requirements.txt
-python train.py --data ..\data\raw\train.csv --target Survived --output-dir models --version v1 --seed 42
-python predict.py --model models\v1\modelo.joblib --input data\ejemplo_prediccion.csv --output outputs\predicciones.csv
-python -m pytest
+uv sync
 ```
 
-Incluye entrenamiento versionado (`models/v1`, `models/v2`), predicción con validación de esquema,
-7 pruebas automatizadas y ejecución con Docker. La guía completa está en
-[`fase-2/README.md`](fase-2/README.md).
+Y desde `fase-2/`:
+
+```powershell
+uv run python train.py --target Survived --output-dir models --version v1 --seed 42
+uv run python predict.py --model models\v1 --input data\ejemplo_prediccion.csv --output outputs\predicciones.csv
+uv run python -m pytest
+```
+
+`train.py` usa por defecto el dataset existente `data/raw/train.csv`; no hace falta copiarlo. Incluye
+entrenamiento versionado (`models/v1`, `models/v2`), predicción con validación de esquema, 7 pruebas
+automatizadas y ejecución con Docker. La guía completa está en [`fase-2/README.md`](fase-2/README.md).
 
 ## 6. Documentación
 

@@ -39,7 +39,24 @@ intacta como entrega anterior.
 | `joblib` | 1.6.0 |
 | `pytest` | 9.1.1 |
 
-Instalación desde `fase-2/`:
+Las dependencias están declaradas en `pyproject.toml` (raíz del repositorio) y bloqueadas en
+`uv.lock`; `requirements.txt` conserva las mismas versiones para Docker y para `pip`.
+
+Instalación recomendada con [uv](https://docs.astral.sh/uv/), desde la raíz del repositorio:
+
+```powershell
+uv sync
+```
+
+`uv sync` instala las dependencias del proyecto y el grupo `dev` (incluye `pytest`). Después, todos
+los comandos de esta guía se ejecutan **desde `fase-2/`** con `uv run`, que reutiliza el entorno
+gestionado por uv en la raíz:
+
+```powershell
+uv run python train.py --help
+```
+
+Alternativa con `venv` y `pip` (equivalente a lo que hace la imagen Docker):
 
 ```powershell
 python -m venv .venv
@@ -47,20 +64,14 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-También se puede usar `uv`:
-
-```powershell
-uv venv .venv --python 3.13
-uv pip install --python .venv\Scripts\python.exe -r requirements.txt
-```
-
-Todos los comandos de esta guía se ejecutan **desde la carpeta `fase-2/`** en PowerShell.
+En ese caso, reemplaza `uv run python` por `python` en los comandos siguientes.
 
 ## 3. Datos
 
 * **Fuente:** [Kaggle — Titanic: Machine Learning from Disaster](https://www.kaggle.com/competitions/titanic).
 * **Datos etiquetados:** `data/raw/train.csv` en la raíz del repositorio (891 filas, columna
-  `Survived`). No se modifican los datos originales.
+  `Survived`). Es la ruta por defecto de `train.py`; no se modifican los datos originales ni se
+  duplican dentro de `fase-2/`.
 * **Archivo de ejemplo para predecir:** `fase-2/data/ejemplo_prediccion.csv` (9 filas, esquema real
   sin `Survived`; incluye celdas nulas en `Age` y `Embarked`).
 * **Esquema requerido para predecir:** `Pclass`, `Age`, `SibSp`, `Parch`, `Fare`, `Sex`,
@@ -98,11 +109,20 @@ fase-2/
 
 ## 5. Entrenamiento
 
+Desde `fase-2/`, usando el dataset existente del repositorio:
+
 ```powershell
-python train.py --data ..\data\raw\train.csv --target Survived --output-dir models --version v1 --seed 42
+uv run python train.py --target Survived --output-dir models --version v1 --seed 42
 ```
 
-Opciones disponibles con `python train.py --help`: `--data`, `--target`, `--output-dir`,
+La ruta de datos es opcional porque `train.py` usa `data/raw/train.csv` por defecto (se resuelve
+contra la raíz del repositorio). Para usar otro archivo, agrega `--data`:
+
+```powershell
+uv run python train.py --data ..\data\raw\train.csv --target Survived --output-dir models --version v1 --seed 42
+```
+
+Opciones disponibles con `uv run python train.py --help`: `--data`, `--target`, `--output-dir`,
 `--version`, `--seed`, `--test-size`, `--n-estimators`, `--max-depth`, `--min-samples-leaf`,
 `--author`.
 
@@ -120,7 +140,7 @@ El script:
 ## 6. Predicción
 
 ```powershell
-python predict.py --model models\v1\modelo.joblib --input data\ejemplo_prediccion.csv --output outputs\predicciones.csv
+uv run python predict.py --model models\v1\modelo.joblib --input data\ejemplo_prediccion.csv --output outputs\predicciones.csv
 ```
 
 `--model` acepta la ruta del `modelo.joblib` o la carpeta de la versión (`models\v1`).
@@ -141,7 +161,7 @@ incompatible, no se escribe el archivo de salida y el proceso termina con códig
 Ambas versiones se generaron con `train.py` (semilla 42) y pueden cargarse indistintamente:
 
 ```powershell
-python predict.py --model models\v2 --input data\ejemplo_prediccion.csv --output outputs\predicciones_v2.csv
+uv run python predict.py --model models\v2 --input data\ejemplo_prediccion.csv --output outputs\predicciones_v2.csv
 ```
 
 Cada versión conserva sus métricas (`metrics.json`) y metadatos (`metadata.json`: fecha, variables y
@@ -162,6 +182,10 @@ Entrenamiento (los datos y los modelos se montan desde el equipo anfitrión para
 docker run --rm -v "${PWD}\..\data\raw:/app/data:ro" -v "${PWD}\models:/app/models" modelos-fase2:1.0 python train.py --data data/train.csv --target Survived --output-dir models --version v-docker --seed 42
 ```
 
+Dentro del contenedor `--data` es obligatorio: la raíz del repositorio no se copia a la imagen, por
+eso el dataset existente (`data/raw/train.csv`) se monta en `/app/data` y se referencia como
+`data/train.csv`.
+
 Predicción:
 
 ```powershell
@@ -178,7 +202,7 @@ host.
 Desde `fase-2/`:
 
 ```powershell
-python -m pytest
+uv run python -m pytest
 ```
 
 Resultado esperado: **7 passed**. Las pruebas usan datos sintéticos y `tmp_path` (no tocan `models/`
@@ -218,7 +242,7 @@ Limitaciones conocidas:
 ## 11. Evidencia de ejecución
 
 ```text
-> python train.py --data ..\data\raw\train.csv --target Survived --output-dir models --version v1 --seed 42
+> uv run python train.py --target Survived --output-dir models --version v1 --seed 42
 Versión entrenada: v1
   Modelo : models\v1\modelo.joblib
   Métricas: models\v1\metrics.json
@@ -226,22 +250,23 @@ Versión entrenada: v1
   RandomForest  accuracy=0.8156  f1=0.7179  roc_auc=0.8356389986824769
   Baseline      accuracy=0.6145  f1=0.0000  roc_auc=0.5
 
-> python predict.py --model models\v1\modelo.joblib --input data\ejemplo_prediccion.csv --output outputs\predicciones.csv
+> uv run python predict.py --model models\v1 --input data\ejemplo_prediccion.csv --output outputs\predicciones_v1.csv
 Columnas ignoradas (no forman parte del esquema del modelo): PassengerId, Name, Ticket, Cabin
 Modelo utilizado: models\v1\modelo.joblib
 Filas procesadas: 9
-Archivo generado: outputs\predicciones.csv
+Archivo generado: outputs\predicciones_v1.csv
 Supervivientes predichos: 5
 
-> python -m pytest
-7 passed in 23.75s
+> uv run python -m pytest
+7 passed in 22.43s
 
 > docker build -t modelos-fase2:1.0 .
 # imagen construida correctamente
 > docker run --rm ... python train.py --data data/train.csv ... --version v-docker --seed 42
 RandomForest  accuracy=0.8156  f1=0.7179  roc_auc=0.8356389986824769
 > docker run --rm ... python predict.py --model models/v-docker/modelo.joblib ...
-Filas procesadas: 9 / Supervivientes predichos: 5
+Filas procesadas: 9
+Supervivientes predichos: 5
 ```
 
 ## 12. Identificación de la entrega

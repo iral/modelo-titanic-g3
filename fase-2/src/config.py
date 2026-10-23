@@ -1,5 +1,10 @@
 """Constantes compartidas por entrenamiento y predicción."""
 
+from pathlib import Path
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_DATA_PATH = REPOSITORY_ROOT / "data" / "raw" / "train.csv"
+
 TARGET_DEFAULT = "Survived"
 
 NUMERIC_FEATURES = ["Pclass", "Age", "SibSp", "Parch", "Fare"]

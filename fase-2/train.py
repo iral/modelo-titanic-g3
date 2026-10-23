@@ -1,8 +1,10 @@
 """Entrenamiento versionado del modelo de supervivencia del Titanic.
 
 Uso:
-    python train.py --data ../data/raw/train.csv --target Survived \
-        --output-dir models --version v1 --seed 42
+    python train.py --target Survived --output-dir models --version v1 --seed 42
+
+Por defecto usa el dataset del repositorio (data/raw/train.csv); --data permite
+indicar otro archivo.
 """
 
 from __future__ import annotations
@@ -26,12 +28,14 @@ from src.artifacts import (
 )
 from src.config import (
     CATEGORICAL_FEATURES,
+    DEFAULT_DATA_PATH,
     DEFAULT_MODEL_PARAMS,
     DEFAULT_SEED,
     DEFAULT_TEST_SIZE,
     FEATURE_COLUMNS,
     NUMERIC_FEATURES,
     PRIMARY_METRIC,
+    REPOSITORY_ROOT,
     TARGET_DEFAULT,
 )
 from src.data import (
@@ -67,6 +71,24 @@ def _resolve_author(author: str | None) -> str:
     return _git_output("config", "user.name") or "equipo"
 
 
+def _resolve_data_path(data_path) -> Path:
+    """Resuelve rutas relativas contra la raíz del repositorio cuando hace falta."""
+    path = Path(data_path)
+    if not path.is_absolute() and not path.exists():
+        candidate = REPOSITORY_ROOT / path
+        if candidate.exists():
+            return candidate
+    return path
+
+
+def _portable_path(path) -> str:
+    """Guarda rutas del repositorio de forma relativa y portable."""
+    try:
+        return Path(path).resolve().relative_to(REPOSITORY_ROOT).as_posix()
+    except ValueError:
+        return str(path)
+
+
 def _feature_schema() -> list:
     return [
         {
@@ -78,7 +100,7 @@ def _feature_schema() -> list:
 
 
 def train_version(
-    data_path,
+    data_path=None,
     target: str = TARGET_DEFAULT,
     output_dir="models",
     version: str = "v1",
@@ -91,10 +113,14 @@ def train_version(
     if not 0 < test_size < 1:
         raise AppError("El tamaño del conjunto de prueba debe estar entre 0 y 1.")
 
+    if data_path is None:
+        data_path = DEFAULT_DATA_PATH
+    resolved_data_path = _resolve_data_path(data_path)
+
     output_dir = Path(output_dir)
     ensure_version_available(output_dir, version)
 
-    dataframe = load_csv(data_path)
+    dataframe = load_csv(resolved_data_path)
     features, target_series = prepare_training_data(dataframe, target)
     features_train, features_test, target_train, target_test = split_dataset(
         features, target_series, test_size, seed
@@ -129,7 +155,7 @@ def train_version(
         "semilla": seed,
         "datos": {
             "fuente": "Kaggle - Titanic: Machine Learning from Disaster",
-            "archivo": str(data_path),
+            "archivo": _portable_path(resolved_data_path),
             "filas": int(len(dataframe)),
             "entrenamiento": int(len(features_train)),
             "prueba": int(len(features_test)),
@@ -175,8 +201,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--data",
-        required=True,
-        help="Ruta del CSV etiquetado (debe incluir la variable objetivo).",
+        default=DEFAULT_DATA_PATH.relative_to(REPOSITORY_ROOT).as_posix(),
+        help=(
+            "Ruta del CSV etiquetado (debe incluir la variable objetivo). "
+            "Las rutas relativas se resuelven contra la raíz del repositorio."
+        ),
     )
     parser.add_argument(
         "--target",

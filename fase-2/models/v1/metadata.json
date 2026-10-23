@@ -1,6 +1,6 @@
 {
   "version": "v1",
-  "fecha_creacion": "2026-10-23T13:00:52+00:00",
+  "fecha_creacion": "2026-10-23T13:14:18+00:00",
   "tipo_problema": "clasificacion_binaria",
   "variable_objetivo": "Survived",
   "algoritmo": "RandomForestClassifier",
@@ -44,7 +44,7 @@
   "semilla": 42,
   "datos": {
     "fuente": "Kaggle - Titanic: Machine Learning from Disaster",
-    "archivo": "..\\data\\raw\\train.csv",
+    "archivo": "data/raw/train.csv",
     "filas": 891,
     "entrenamiento": 712,
     "prueba": 179
@@ -80,6 +80,6 @@
     "scikit-learn": "1.9.0"
   },
   "dependencias": "requirements.txt",
-  "commit_codigo": "bd343b32866539cbc8479a372eef06798c16c10c",
+  "commit_codigo": "eb3753279224c85db29bc4b332047f50bb8be4dc",
   "autor": "Ivan Acosta Lallemand"
 }
