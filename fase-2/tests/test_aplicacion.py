@@ -35,7 +35,7 @@ def make_dataset(rows: int = 120, seed: int = 7) -> pd.DataFrame:
             "Age": np.round(rng.normal(30, 10, rows), 1),
             "SibSp": rng.integers(0, 3, rows),
             "Parch": rng.integers(0, 3, rows),
-            "Ticket": [f"T{index}" for index in range(rows)],
+            "Ticket": [f"T{index // 3}" for index in range(rows)],
             "Fare": np.round(rng.uniform(5, 200, rows), 2),
             "Cabin": rng.choice([None, "C1", "B2"], rows),
             "Embarked": rng.choice(["S", "C", "Q"], rows),
@@ -61,6 +61,7 @@ def trained_version(tmp_path: Path, dataset_path: Path) -> dict:
         output_dir=tmp_path / "models",
         version="v1",
         seed=42,
+        model_params={"n_estimators": 40, "max_depth": 4},
     )
 
 
@@ -101,6 +102,38 @@ def test_entrenamiento_genera_artefactos(trained_version, tmp_path):
     assert metadata["datos"]["prueba"] > 0
     assert metadata["commit_codigo"]
     assert metadata["variables_entrada"]
+    assert metadata["seleccion"]["metrica"] == "f1"
+
+
+def test_particion_por_grupos_evita_fuga(trained_version):
+    metadata = trained_version["metadata"]
+    assert metadata["separacion"]["por_grupos"] is True
+    assert metadata["grupos"]["columna"] == "Ticket"
+    assert metadata["grupos"]["grupos_entrenamiento"] > 0
+    assert metadata["grupos"]["grupos_prueba"] > 0
+    assert metadata["grupos"]["grupos_compartidos"] == 0
+
+
+def test_seleccion_por_f1_en_validacion(tmp_path, dataset_path):
+    result = train_version(
+        data_path=dataset_path,
+        output_dir=tmp_path / "models",
+        version="seleccion",
+        seed=42,
+        param_grid={
+            "classifier__n_estimators": [10],
+            "classifier__max_depth": [3, 5],
+        },
+        cv_folds=2,
+        select_by="f1",
+    )
+
+    selection = result["metadata"]["seleccion"]
+    assert selection["metodo"] == "GridSearchCV"
+    assert selection["metrica"] == "f1"
+    assert selection["combinaciones"] == 2
+    assert 0.0 <= selection["mejor_score_cv"] <= 1.0
+    assert result["metadata"]["hiperparametros"]["max_depth"] in (3, 5)
 
 
 def test_prediccion_consistente_y_una_por_fila(trained_version, tmp_path):
@@ -181,11 +214,20 @@ def test_columna_faltante_falla_con_error_claro(trained_version, tmp_path):
 
 def test_versionamiento_no_sobrescribe(tmp_path, dataset_path):
     models_dir = tmp_path / "models"
+    fixed = {"n_estimators": 20, "max_depth": 3}
     first = train_version(
-        data_path=dataset_path, output_dir=models_dir, version="v1", seed=42
+        data_path=dataset_path,
+        output_dir=models_dir,
+        version="v1",
+        seed=42,
+        model_params=fixed,
     )
     second = train_version(
-        data_path=dataset_path, output_dir=models_dir, version="v2", seed=7
+        data_path=dataset_path,
+        output_dir=models_dir,
+        version="v2",
+        seed=7,
+        model_params=fixed,
     )
 
     assert (models_dir / "v1" / "modelo.joblib").is_file()
@@ -197,7 +239,11 @@ def test_versionamiento_no_sobrescribe(tmp_path, dataset_path):
     original = (models_dir / "v1" / "modelo.joblib").read_bytes()
     with pytest.raises(VersionAlreadyExistsError):
         train_version(
-            data_path=dataset_path, output_dir=models_dir, version="v1", seed=99
+            data_path=dataset_path,
+            output_dir=models_dir,
+            version="v1",
+            seed=99,
+            model_params=fixed,
         )
     assert (models_dir / "v1" / "modelo.joblib").read_bytes() == original
 
@@ -239,6 +285,10 @@ def test_cli_entrenamiento_genera_version(tmp_path, dataset_path):
             "cli",
             "--seed",
             "42",
+            "--n-estimators",
+            "10",
+            "--max-depth",
+            "3",
         ],
         cwd=PROJECT_ROOT,
     )

@@ -3,7 +3,10 @@
 from pathlib import Path
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import (
+    StratifiedGroupKFold,
+    train_test_split,
+)
 
 from .config import CATEGORICAL_FEATURES, FEATURE_COLUMNS, NUMERIC_FEATURES
 from .errors import DataValidationError
@@ -89,8 +92,72 @@ def prepare_training_data(df: pd.DataFrame, target: str, feature_columns=None):
     return features_df, target_series
 
 
-def split_dataset(features: pd.DataFrame, target, test_size: float, seed: int):
-    """Divide en entrenamiento y prueba antes de ajustar cualquier transformación."""
+def build_groups(dataframe: pd.DataFrame, group_column: str | None = None):
+    """Agrupa pasajeros que comparten ticket para evitar fuga entre particiones.
+
+    Los pasajeros sin `Ticket` reciben un grupo propio (no se agrupan entre sí
+    por coincidencia de nulos). Devuelve None si la columna no está disponible.
+    """
+    if not group_column or group_column not in dataframe.columns:
+        return None
+
+    groups = dataframe[group_column].astype("string").str.strip()
+    missing = groups.isna() | (groups == "")
+    if missing.any():
+        if "PassengerId" in dataframe.columns:
+            fallback = "pasajero-" + dataframe["PassengerId"].astype("string")
+        else:
+            fallback = pd.Series(
+                [f"fila-{position}" for position in range(len(dataframe))],
+                index=dataframe.index,
+                dtype="string",
+            )
+        groups = groups.mask(missing, fallback)
+
+    return groups.astype("string")
+
+
+def count_shared_groups(train_groups, test_groups) -> int:
+    """Cuenta los grupos (tickets) presentes en entrenamiento y en prueba."""
+    if train_groups is None or test_groups is None:
+        return 0
+    return len(set(train_groups.tolist()) & set(test_groups.tolist()))
+
+
+def split_dataset(
+    features: pd.DataFrame,
+    target,
+    test_size: float,
+    seed: int,
+    groups=None,
+):
+    """Divide entrenamiento/prueba sin fuga y sin partir grupos de viaje.
+
+    Con grupos usa StratifiedGroupKFold (mantiene la proporción de clases y
+    garantiza que un ticket no aparezca en ambos conjuntos). Sin grupos usa la
+    partición estratificada clásica.
+    """
+    if groups is not None:
+        folds = max(2, int(round(1 / test_size)))
+        splitter = StratifiedGroupKFold(
+            n_splits=folds, shuffle=True, random_state=seed
+        )
+        try:
+            train_index, test_index = next(
+                splitter.split(features, target, groups)
+            )
+        except ValueError as exc:
+            raise DataValidationError(
+                "No fue posible separar los datos por grupos: "
+                f"{exc}. Revisa los grupos o cambia la semilla."
+            ) from exc
+        return (
+            features.iloc[train_index],
+            features.iloc[test_index],
+            target.iloc[train_index],
+            target.iloc[test_index],
+        )
+
     try:
         return train_test_split(
             features,
