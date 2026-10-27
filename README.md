@@ -8,9 +8,10 @@
 ## 2. Descripción
 
 Proyecto de Machine Learning supervisado que predice la supervivencia de pasajeros del Titanic
-(`Survived`) a partir de sus características personales y de viaje. La documentación completa de la
-**Fase 1** (datos, preprocesamiento, algoritmo, resultados y modelo almacenado) está en
-[`fase-1/README.md`](fase-1/README.md).
+(`Survived`) a partir de sus características personales y de viaje. La **Fase 1** (análisis,
+modelado y evaluación) está documentada en [`fase-1/README.md`](fase-1/README.md); la **Fase 2**
+convierte ese trabajo en una aplicación de línea de comandos con versionado de modelos, pruebas y
+Docker, documentada en [`fase-2/README.md`](fase-2/README.md).
 
 ## 3. Estructura del Proyecto
 ```
@@ -26,7 +27,17 @@ modelo-titanic-g3/
 │   ├── modelo.joblib           # Pipeline completo entrenado (preprocesamiento + Random Forest)
 │   ├── metricas_base.json      # Métricas del modelo base en el conjunto de prueba
 │   └── metricas_modelo.json    # Métricas del modelo predictivo en el conjunto de prueba
-├── pyproject.toml              # Definición del entorno y dependencias
+├── fase-2/
+│   ├── README.md               # Guía de la aplicación (comandos, Docker y pruebas)
+│   ├── train.py                # Entrenamiento versionado
+│   ├── predict.py              # Predicción con una versión guardada
+│   ├── src/                    # Lógica reutilizable (datos, pipeline, métricas, artefactos)
+│   ├── tests/                  # Pruebas automatizadas con pytest
+│   ├── models/                 # Versiones v1 y v2 del modelo
+│   ├── data/                   # CSV de ejemplo sin la variable objetivo
+│   ├── Dockerfile              # Imagen para ejecutar entrenamiento y predicción
+│   └── requirements.txt        # Dependencias con versiones explícitas
+├── pyproject.toml              # Dependencias de las dos fases (uv)
 ├── uv.lock                     # Bloqueo de versiones de dependencias
 └── README.md
 ```
@@ -34,7 +45,7 @@ modelo-titanic-g3/
 ## 4. Cómo ejecutar el proyecto (Fase 1)
 
 ### 4.1 Requisitos
-* Python 3.12 o superior.
+* Python 3.13 (probado con 3.13.0).
 * [uv](https://docs.astral.sh/uv/) para la gestión del entorno virtual y las dependencias.
 
 ### 4.2 Instalación
@@ -42,8 +53,8 @@ Desde la raíz del proyecto:
 ```bash
 uv sync
 ```
-Crea el entorno virtual (`.venv/`), instala las dependencias (análisis de datos y visualización) y
-las herramientas para ejecutar el notebook.
+Crea el entorno virtual (`.venv/`) e instala las dependencias de las dos fases, las herramientas para
+ejecutar el notebook y `pytest`.
 
 > **Nota:** si acabas de clonar el repositorio, este es el único paso necesario; no hace falta crear
 > el entorno a mano.
@@ -73,10 +84,33 @@ celda de configuración y propagada como `random_state` a cada estimador. Con el
 modificar, dos ejecuciones completas producen las mismas métricas publicadas en
 [`fase-1/README.md`](fase-1/README.md).
 
-## 5. Documentación
+## 5. Fase 2 (aplicación reutilizable)
+
+La Fase 2 vive en `fase-2/` y comparte el entorno gestionado por `uv` (`pyproject.toml` en la raíz,
+Python 3.13); `fase-2/requirements.txt` mantiene las mismas versiones para Docker y `pip`. Desde la
+raíz:
+
+```powershell
+uv sync
+```
+
+Y desde `fase-2/`:
+
+```powershell
+uv run python train.py --target Survived --output-dir models --version v1 --seed 42
+uv run python predict.py --model models\v1 --input data\ejemplo_prediccion.csv --output outputs\predicciones.csv
+uv run python -m pytest
+```
+
+`train.py` usa por defecto el dataset existente `data/raw/train.csv`; no hace falta copiarlo. Incluye
+entrenamiento versionado (`models/v1`, `models/v2`), predicción con validación de esquema, 7 pruebas
+automatizadas y ejecución con Docker. La guía completa está en [`fase-2/README.md`](fase-2/README.md).
+
+## 6. Documentación
 
 | Documento | Contenido |
 |-----------|-----------|
 | [`fase-1/README.md`](fase-1/README.md) | Problema, datos, preprocesamiento, modelo base, algoritmo definitivo, resultados finales y modelo almacenado. |
+| [`fase-2/README.md`](fase-2/README.md) | Aplicación reutilizable: instalación, comandos de entrenamiento y predicción, versiones, Docker, pruebas y evidencias. |
 | [`docs/TECNICO.md`](docs/TECNICO.md) | Guía exhaustiva: requisitos, esquema del dataset, ejecución, reproducibilidad y resolución de problemas. |
 | `fase-1/notebook.ipynb` | Notebook completo y ejecutado, con la reflexión técnica final. |
