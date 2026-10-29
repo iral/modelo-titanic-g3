@@ -55,7 +55,7 @@ modelo-titanic-g3/
 | Requisito | Versión mínima | Notas |
 |-----------|---------------|-------|
 | Sistema operativo | Cualquiera | Las instrucciones usan sintaxis de terminal estándar |
-| Python | 3.12 | La versión la gestiona el propio entorno virtual |
+| Python | 3.13 | La versión la gestiona el propio entorno virtual |
 | uv | 0.5.x o superior | Gestor de entornos virtuales y dependencias |
 
 > **¿Por qué un entorno virtual?** Aísla las dependencias del proyecto del Python del sistema,
@@ -196,7 +196,7 @@ uv sync             # instala las nuevas versiones
 
 ### 7.2 Error de versión de Python
 
-- El proyecto requiere Python 3.12 o superior; `pyproject.toml` declara `requires-python = ">=3.12"`.
+- El proyecto requiere Python 3.13; `pyproject.toml` declara `requires-python = ">=3.13"`.
 - `uv` descarga la versión adecuada automáticamente si no está disponible en el sistema.
 
 ### 7.3 El notebook no encuentra los datos

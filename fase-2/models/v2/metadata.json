@@ -1,0 +1,85 @@
+{
+  "version": "v2",
+  "fecha_creacion": "2026-10-23T13:14:24+00:00",
+  "tipo_problema": "clasificacion_binaria",
+  "variable_objetivo": "Survived",
+  "algoritmo": "RandomForestClassifier",
+  "variables_entrada": [
+    {
+      "nombre": "Pclass",
+      "tipo": "numerica"
+    },
+    {
+      "nombre": "Age",
+      "tipo": "numerica"
+    },
+    {
+      "nombre": "SibSp",
+      "tipo": "numerica"
+    },
+    {
+      "nombre": "Parch",
+      "tipo": "numerica"
+    },
+    {
+      "nombre": "Fare",
+      "tipo": "numerica"
+    },
+    {
+      "nombre": "Sex",
+      "tipo": "categorica"
+    },
+    {
+      "nombre": "Embarked",
+      "tipo": "categorica"
+    }
+  ],
+  "hiperparametros": {
+    "n_estimators": 200,
+    "max_depth": 7,
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "random_state": 42
+  },
+  "semilla": 42,
+  "datos": {
+    "fuente": "Kaggle - Titanic: Machine Learning from Disaster",
+    "archivo": "data/raw/train.csv",
+    "filas": 891,
+    "entrenamiento": 712,
+    "prueba": 179
+  },
+  "separacion": {
+    "estrategia": "train_test_split estratificado",
+    "test_size": 0.2,
+    "random_state": 42,
+    "estratificado": true
+  },
+  "metrica_principal": "f1",
+  "metricas": {
+    "modelo": {
+      "accuracy": 0.8044692737430168,
+      "precision": 0.84,
+      "recall": 0.6086956521739131,
+      "f1": 0.7058823529411765,
+      "roc_auc": 0.8442687747035574
+    },
+    "modelo_base": {
+      "accuracy": 0.6145251396648045,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "roc_auc": 0.5
+    },
+    "metrica_principal": "f1"
+  },
+  "python": "3.13.0",
+  "librerias": {
+    "pandas": "3.0.5",
+    "numpy": "2.5.2",
+    "scikit-learn": "1.9.0"
+  },
+  "dependencias": "requirements.txt",
+  "commit_codigo": "eb3753279224c85db29bc4b332047f50bb8be4dc",
+  "autor": "Ivan Acosta Lallemand"
+}

@@ -14,6 +14,16 @@ __pycache__/
 data/processed/
 data/interim/
 
+# Pruebas
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Fase 2: entorno y salidas generadas
+fase-2/.venv/
+fase-2/outputs/*
+!fase-2/outputs/.gitkeep
+
 # Editor / SO
 .vscode/
 .idea/
