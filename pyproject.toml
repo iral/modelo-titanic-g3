@@ -3,12 +3,15 @@ name = "modelo-titanic-g3"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "joblib>=1.6.0",
+    "fastapi",
+    "httpx",
+    "joblib==1.6.0",
     "matplotlib>=3.11.1",
-    "numpy>=2.5.2",
-    "pandas>=3.0.5",
-    "scikit-learn>=1.9.0",
+    "numpy==2.5.2",
+    "pandas==3.0.5",
+    "scikit-learn==1.9.0",
     "seaborn>=0.13.2",
+    "uvicorn",
 ]
 
 [dependency-groups]
@@ -16,5 +19,5 @@ dev = [
     "ipykernel>=7.3.0",
     "jupyter>=1.1.1",
     "nbformat>=5.11.1",
-    "pytest>=9.1.1",
+    "pytest==9.1.1",
 ]
