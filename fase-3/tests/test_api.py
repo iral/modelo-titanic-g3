@@ -178,3 +178,54 @@ def test_predict_with_saved_model_pipeline(monkeypatch):
     assert set(response.json()) == {"prediccion", "version"}
     assert response.json()["version"] == "v1"
     assert response.json()["prediccion"] in (0, 1)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("Pclass", 0), ("Pclass", 4), ("Pclass", 2.5),
+        ("Age", -0.1), ("SibSp", -1), ("SibSp", 1.5),
+        ("Parch", -1), ("Parch", 0.5), ("Fare", -0.01),
+        ("Sex", "alien"), ("Embarked", "X"),
+        ("Pclass", True), ("SibSp", True), ("Parch", True),
+    ],
+)
+def test_predict_rechaza_valores_semanticamente_invalidos(
+    monkeypatch, field, value
+):
+    model = RecordingModel(prediction=1)
+    monkeypatch.setattr(api_module, "load_model", lambda _path: model)
+    response = TestClient(create_app()).post(
+        "/predict", json={**PREDICTION_INPUT, field: value}
+    )
+    assert response.status_code == 422
+    assert field in response.text
+
+
+def test_predict_admite_nulos_que_puede_imputar_el_pipeline(monkeypatch):
+    model = RecordingModel(prediction=0)
+    monkeypatch.setattr(api_module, "load_model", lambda _path: model)
+    payload = {
+        **PREDICTION_INPUT, "Age": None, "Fare": None,
+        "Embarked": None, "Pclass": None, "SibSp": None, "Parch": None,
+    }
+    response = TestClient(create_app()).post("/predict", json=payload)
+    assert response.status_code == 200
+    assert response.json()["prediccion"] == 0
+    assert pd.isna(model.features.loc[0, "Age"])
+    assert pd.isna(model.features.loc[0, "Pclass"])
+
+
+def test_predict_convierte_error_de_esquema_en_422(monkeypatch):
+    from src.errors import DataValidationError
+
+    monkeypatch.setattr(
+        api_module, "load_model", lambda _path: RecordingModel(prediction=1)
+    )
+    def invalid_schema(_model, _dataframe):
+        raise DataValidationError("esquema inválido")
+    monkeypatch.setattr(api_module, "predict_dataframe", invalid_schema)
+
+    response = TestClient(create_app()).post("/predict", json=PREDICTION_INPUT)
+    assert response.status_code == 422
+    assert "esquema inválido" in response.json()["detail"]
