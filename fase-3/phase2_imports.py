@@ -1,4 +1,4 @@
-"""Importaciones compartidas de la Fase 2 para los módulos de la Fase 3."""
+"""Puente hacia las funciones compartidas de la Fase 2."""
 
 import sys
 from pathlib import Path
@@ -9,8 +9,11 @@ if not PHASE2_DIR.is_dir():
 
 phase2_path = str(PHASE2_DIR)
 if phase2_path not in sys.path:
-    sys.path.append(phase2_path)
+    sys.path.insert(0, phase2_path)
 
-from predict import run_prediction
-from src.data import coerce_feature_types, validate_feature_schema
-from train import train_version
+from predict import predict_dataframe, run_prediction  # noqa: E402
+from src.data import (  # noqa: E402
+    coerce_feature_types,
+    validate_feature_schema,
+)
+from train import train_version  # noqa: E402
