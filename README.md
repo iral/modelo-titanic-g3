@@ -184,5 +184,4 @@ La guía completa, la política de reentrenamiento y el reporte están en
 ## 9. Entrega final
 
 * Ramas integradas: `main` ← `develop` ← `feature/*`.
-* Commit de entrega en `main`: **PENDIENTE_DE_ACTUALIZAR**.
 * Carpetas incluidas y reproducibles: `fase-1/`, `fase-2/`, `fase-3/` y `fase-4/`.
