@@ -33,12 +33,13 @@ def _model_feature_columns(model) -> list:
     return [str(column) for column in stored]
 
 
-def run_prediction(model_path, input_path, output_path) -> dict:
-    """Genera una predicción por fila conservando el orden de la entrada."""
-    model_file = resolve_model_path(model_path)
-    model = load_model(model_file)
-    dataframe = load_csv(input_path)
+def predict_dataframe(model, dataframe: pd.DataFrame) -> dict:
+    """Predice un DataFrame ya cargado sin escribir archivos.
 
+    Es la función compartida con la API de la Fase 3: valida el esquema, aplica
+    las transformaciones guardadas en el pipeline y devuelve una predicción por
+    fila conservando el orden y el ``PassengerId`` de la entrada.
+    """
     feature_columns = _model_feature_columns(model)
     features = coerce_feature_types(dataframe, feature_columns)
     ignored_columns = [
@@ -59,6 +60,22 @@ def run_prediction(model_path, input_path, output_path) -> dict:
             "La cantidad de predicciones no coincide con la cantidad de filas de entrada."
         )
 
+    return {
+        "predicciones": output,
+        "filas": int(len(output)),
+        "columnas_usadas": feature_columns,
+        "columnas_ignoradas": ignored_columns,
+    }
+
+
+def run_prediction(model_path, input_path, output_path) -> dict:
+    """Genera una predicción por fila conservando el orden de la entrada."""
+    model_file = resolve_model_path(model_path)
+    model = load_model(model_file)
+    dataframe = load_csv(input_path)
+    result = predict_dataframe(model, dataframe)
+    output = result["predicciones"]
+
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)
     temporary_file = output_file.with_name(output_file.name + ".tmp")
@@ -66,10 +83,7 @@ def run_prediction(model_path, input_path, output_path) -> dict:
     os.replace(temporary_file, output_file)
 
     return {
-        "predicciones": output,
-        "filas": int(len(output)),
-        "columnas_usadas": feature_columns,
-        "columnas_ignoradas": ignored_columns,
+        **result,
         "salida": output_file,
         "modelo": model_file,
     }
