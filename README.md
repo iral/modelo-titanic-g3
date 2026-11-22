@@ -11,7 +11,9 @@ Proyecto de Machine Learning supervisado que predice la supervivencia de pasajer
 (`Survived`) a partir de sus características personales y de viaje. La **Fase 1** (análisis,
 modelado y evaluación) está documentada en [`fase-1/README.md`](fase-1/README.md); la **Fase 2**
 convierte ese trabajo en una aplicación de línea de comandos con versionado de modelos, pruebas y
-Docker, documentada en [`fase-2/README.md`](fase-2/README.md).
+Docker, documentada en [`fase-2/README.md`](fase-2/README.md). La **Fase 3** expone el modelo con
+una API REST (FastAPI) y la **Fase 4** registra y monitorea su uso, documentadas en
+[`fase-3/README.md`](fase-3/README.md) y [`fase-4/README.md`](fase-4/README.md).
 
 ## 3. Estructura del Proyecto
 ```
@@ -37,7 +39,25 @@ modelo-titanic-g3/
 │   ├── data/                   # CSV de ejemplo sin la variable objetivo
 │   ├── Dockerfile              # Imagen para ejecutar entrenamiento y predicción
 │   └── requirements.txt        # Dependencias con versiones explícitas
-├── pyproject.toml              # Dependencias de las dos fases (uv)
+├── fase-3/
+│   ├── README.md               # Guía de la API: endpoints, versiones, Docker y pruebas
+│   ├── api.py                  # FastAPI: GET /health, POST /predict, POST /train
+│   ├── training_service.py     # Entrenamiento versionado y publicación atómica
+│   ├── phase2_imports.py       # Puente hacia las funciones de la Fase 2
+│   ├── client.py               # Cliente HTTP de demostración
+│   ├── tests/                  # Pruebas de la API y del entrenamiento
+│   ├── Dockerfile              # Imagen de la API (uvicorn en 0.0.0.0:8000)
+│   └── requirements.txt        # Dependencias con versiones explícitas
+├── fase-4/
+│   ├── README.md               # Registro, monitoreo, política de reentrenamiento y reporte
+│   ├── api.py                  # Fase 3 + registro CSV de cada POST /predict
+│   ├── monitoreo.py            # Total de solicitudes y porcentaje de fallos
+│   ├── tests/                  # Pruebas del registro y del monitoreo
+│   ├── logs/                   # Registro persistente (muestra incluida)
+│   ├── Dockerfile              # Imagen de la API con registro persistente
+│   └── requirements.txt        # Dependencias con versiones explícitas
+├── .dockerignore               # Exclusiones comunes de las imágenes
+├── pyproject.toml              # Dependencias de las cuatro fases (uv)
 ├── uv.lock                     # Bloqueo de versiones de dependencias
 └── README.md
 ```
@@ -103,14 +123,66 @@ uv run python -m pytest
 ```
 
 `train.py` usa por defecto el dataset existente `data/raw/train.csv`; no hace falta copiarlo. Incluye
-entrenamiento versionado (`models/v1`, `models/v2`), predicción con validación de esquema, 7 pruebas
+entrenamiento versionado (`models/v1`, `models/v2`), predicción con validación de esquema, 9 pruebas
 automatizadas y ejecución con Docker. La guía completa está en [`fase-2/README.md`](fase-2/README.md).
 
-## 6. Documentación
+## 6. Fase 3 (API REST)
+
+Desde `fase-3/`, con el modelo `v1` de la Fase 2:
+
+```powershell
+uv run uvicorn api:app --host 0.0.0.0 --port 8000
+```
+
+```bash
+curl http://localhost:8000/health
+# {"status":"ok","version":"v1"}
+
+curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" \
+  -d '{"Pclass":3,"Age":22.0,"SibSp":1,"Parch":0,"Fare":7.25,"Sex":"male","Embarked":"S"}'
+# {"prediccion":0,"version":"v1"}
+
+curl -X POST http://localhost:8000/train -H "Content-Type: application/json" -d '{"seed":42}'
+# {"mensaje":"Entrenamiento completado","version_activa":"v1","version":"v3", ...}
+```
+
+La versión activa se cambia con `MODEL_VERSION` (por ejemplo, `MODEL_VERSION=v2`) sin tocar el
+código. `POST /train` crea una versión nueva y no la activa automáticamente. La guía completa está
+en [`fase-3/README.md`](fase-3/README.md).
+
+## 7. Fase 4 (monitoreo)
+
+Desde `fase-4/`, la API registra cada `POST /predict` (incluidos los `422`) en
+`logs/registro_predicciones.csv`:
+
+```powershell
+uv run uvicorn api:app --host 0.0.0.0 --port 8000
+uv run python monitoreo.py
+```
+
+Salida del ensayo incluido en el repositorio:
+
+```text
+Total de solicitudes: 3
+Porcentaje de fallos: 33,3%
+```
+
+La guía completa, la política de reentrenamiento y el reporte están en
+[`fase-4/README.md`](fase-4/README.md).
+
+## 8. Documentación
 
 | Documento | Contenido |
 |-----------|-----------|
 | [`fase-1/README.md`](fase-1/README.md) | Problema, datos, preprocesamiento, modelo base, algoritmo definitivo, resultados finales y modelo almacenado. |
 | [`fase-2/README.md`](fase-2/README.md) | Aplicación reutilizable: instalación, comandos de entrenamiento y predicción, versiones, Docker, pruebas y evidencias. |
+| [`fase-3/README.md`](fase-3/README.md) | API REST: endpoints, selección de versión, Docker, cliente de prueba y pruebas automatizadas. |
+| [`fase-4/README.md`](fase-4/README.md) | Registro persistente, métricas operativas, ensayo controlado, política de reentrenamiento y reporte. |
 | [`docs/TECNICO.md`](docs/TECNICO.md) | Guía exhaustiva: requisitos, esquema del dataset, ejecución, reproducibilidad y resolución de problemas. |
 | `fase-1/notebook.ipynb` | Notebook completo y ejecutado, con la reflexión técnica final. |
+
+## 9. Entrega final
+
+* Ramas integradas: `main` ← `develop` ← `feature/*`.
+* Commit de entrega en `main`: **PENDIENTE_DE_ACTUALIZAR**.
+* Carpetas incluidas y reproducibles: `fase-1/`, `fase-2/`, `fase-3/` y `fase-4/`.
