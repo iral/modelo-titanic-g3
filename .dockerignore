@@ -1,0 +1,12 @@
+# Contexto raíz compartido por las imágenes de fase-3 y fase-4.
+.git
+.gitignore
+.venv
+**/__pycache__
+**/.pytest_cache
+*.pdf
+fase-1
+fase-2/outputs
+fase-2/.venv
+fase-4/logs/*.csv
+!fase-4/logs/registro_ejemplo.csv

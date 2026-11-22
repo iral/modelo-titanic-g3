@@ -1,6 +1,6 @@
 # Construir desde la RAÍZ del repositorio:
 #   docker build -f fase-3/Dockerfile -t titanic-api .
-FROM python:3.13.0-slim
+FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -11,9 +11,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# uv dentro de la imagen; las versiones exactas vienen de requirements.txt.
+COPY --from=ghcr.io/astral-sh/uv:0.12.10 /uv /usr/local/bin/uv
 COPY fase-3/requirements.txt ./requirements.txt
-RUN python -m pip install --upgrade pip \
-    && python -m pip install -r requirements.txt
+RUN uv pip install --system --break-system-packages -r requirements.txt
 
 COPY fase-2/train.py fase-2/predict.py ./fase-2/
 COPY fase-2/src ./fase-2/src
