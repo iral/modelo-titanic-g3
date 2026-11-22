@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+*.tmp
+*.temp
+*.log
+.git/
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+logs/*.csv
+!logs/registro_ejemplo.csv
