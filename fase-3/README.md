@@ -28,6 +28,12 @@ Requisitos: Python 3.13 y [uv](https://docs.astral.sh/uv/). Desde la **raíz del
 uv sync
 ```
 
+> **Nota sobre Python 3.15.** Se probó Python 3.15.0rc2, pero `pandas==3.0.5`
+> (versión fijada por la Fase 2) aún no publica *wheels* para CPython 3.15 y su
+> compilación desde fuente falla en Windows. Para conservar las versiones
+> exactas con las que se entrenaron los modelos se usa Python 3.13, también en
+> el Dockerfile. La API y las pruebas son compatibles con 3.13+.
+
 Datos necesarios: `data/raw/train.csv` (entrenamiento) y `fase-2/models/v1` (modelo inicial).
 
 ## 4. Ejecución local
@@ -111,14 +117,20 @@ Desde la **raíz del repositorio**:
 
 ```bash
 docker build -f fase-3/Dockerfile -t titanic-api .
-docker run --rm -p 8000:8000 -v "$(pwd)/fase-2/models:/app/fase-2/models" titanic-api
+docker run --rm -p 8000:8000 \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/fase-2/models:/app/fase-2/models" \
+  titanic-api
 # usar otra versión:
-docker run --rm -p 8000:8000 -e MODEL_VERSION=v3 -v "$(pwd)/fase-2/models:/app/fase-2/models" titanic-api
+docker run --rm -p 8000:8000 -e MODEL_VERSION=v3 \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/fase-2/models:/app/fase-2/models" \
+  titanic-api
 ```
-El volumen `models` hace que las versiones creadas por `/train` sobrevivan al contenedor. Los datos
-(`data/raw`) viajan dentro de la imagen; para usar otros, móntalos en `/app/data`. El comando de
-inicio es `uvicorn api:app --host 0.0.0.0 --port 8000`. Dentro de la imagen no hay `git`, por lo que
-`commit_codigo` queda como `desconocido`.
+El volumen `models` hace que las versiones creadas por `/train` sobrevivan al contenedor; el volumen
+`data` permite usar `data/raw/train.csv` y otros CSV dentro de `DATA_DIR`. La imagen instala las
+dependencias con `uv` y el comando de inicio es `uvicorn api:app --host 0.0.0.0 --port 8000`. Dentro
+de la imagen no hay `git`, por lo que `commit_codigo` queda como `desconocido`.
 
 ## 8. Pruebas
 
